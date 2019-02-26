@@ -148,11 +148,13 @@ class UserForm extends Form
     {
 		// Generate required field validator
 		$requiredNames = $this
-            ->getController()
-			->Fields()
-			->filter('Required', true)
-			->column('Name');
+		->getController()
+		->Fields()
+		->Filter(['Required' => true])
+		->column('Name');
 		$required = new RequiredFields($requiredNames);
+		$post = (empty($_POST))? [] : $_POST;
+		$this->getController()->requiredFieldsByRules($required, Convert::raw2xml($post));
 		$this->extend('updateRequiredFields', $required);
         $required->setForm($this);
 		return $required;

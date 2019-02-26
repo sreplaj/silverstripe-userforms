@@ -28,6 +28,13 @@ class EditableFormFieldValidator extends RequiredFields
         return $this->record;
     }
 
+    /*
+     * @return EditableCustmRule
+     */
+    public function getCustomRule()
+    {
+        return EditableCustomRule::get()->filter('ParentID', $this->record->ID);
+    }
 
     public function php($data)
     {
@@ -42,16 +49,15 @@ class EditableFormFieldValidator extends RequiredFields
 
         // Skip validation if not required
         if (empty($data['Required'])) {
-            return;
-        }
-
-        // Skip validation if no rules
-        $count = EditableCustomRule::get()->filter('ParentID', $this->record->ID)->count();
-        if ($count == 0) {
             return true;
         }
 
-        // Both required = true and rules > 0 should error
+        // Skip validation if no rules
+        if ($this->getCustomRule()->count() == 0) {
+            return true;
+        }
+
+        /* Both required = true and rules > 0 should error
         $this->validationError(
             'Required_Error',
             _t(
@@ -60,6 +66,6 @@ class EditableFormFieldValidator extends RequiredFields
             ),
             'error'
         );
-        return false;
+        return false;*/
     }
 }

@@ -125,6 +125,7 @@ class UserDefinedForm extends Page
         $self = $this;
 
         $this->beforeUpdateCMSFields(function ($fields) use ($self) {
+
             // define tabs
             $fields->findOrMakeTab('Root.FormOptions', _t('UserDefinedForm.CONFIGURATION', 'Configuration'));
             $fields->findOrMakeTab('Root.Recipients', _t('UserDefinedForm.RECIPIENTS', 'Recipients'));
@@ -225,6 +226,7 @@ SQL;
 
             // attach every column to the print view form
             $columns['Created'] = 'Created';
+            $columns['SubmittedBy.Email'] = 'Submitter';
             $filter->setColumns($columns);
 
             // print configuration
@@ -278,6 +280,7 @@ SQL;
 
         // Filter by rules
         $recipients = $recipients->filterByCallback(function ($recipient) use ($data, $form) {
+            /** @var UserDefinedForm_EmailRecipient $recipient */
             return $recipient->canSend($data, $form);
         });
 
@@ -434,6 +437,101 @@ class UserDefinedForm_Controller extends Page_Controller
     }
 
     /**
+     * Method will checks all required fields within post data, and check did it
+     * need to remove field from required fields if field rules (dependencies) are negative.
+     *
+     * @param RequiredFields $requiredFields Set required fields
+     * @param array          $post $_POST data
+     *
+     * @return bool | returns false when no post array are given and true when scripts end.
+     */
+    public function requiredFieldsByRules(RequiredFields &$requiredFields, array $post = []) {
+
+        foreach($requiredFields->getRequired() as $name) {
+            // check the rules expression, maybe this field is hidden
+            if(($fields = $this->Fields()->filter('Name', $name)) && $fields->exists()) {
+                /** @var EditableFormField $field */
+                $field = $fields->first();
+                $remove = [];
+                // echo "<pre>".$field->Name." has ".$field->EffectiveDisplayRules()->count()." rules.\n</pre>";
+                foreach($field->EffectiveDisplayRules() as $rule) {
+                    $rule = $rule->toMap();
+                    if (isset($rule['FieldValue'])) {
+                        $expectedValue = $rule['FieldValue'];
+                    } else {
+                        $expectedValue = '';
+                    }
+                    $conditionFieldName = $this->Fields()->filter('ID', $rule['ConditionFieldID'])->Column('Name')[0];
+                    $postConditionFieldValue = isset($post[$conditionFieldName]) ? $post[$conditionFieldName] : '';
+                    $conditionField = !empty($conditionFieldName) ? $this->Fields()->filter('Name', $conditionFieldName) : null;
+
+                    if(!is_null($conditionField) && $conditionField->exists()) {
+                        /** @var EditableFormField $conditionField */
+                        $conditionField = $conditionField->first();
+                    }
+
+                    // todo: improve with radio, checkbox, and checkbox group inputs
+                    switch($rule['ConditionOption']) {
+                        case 'IsNotBlank':
+                            $remove[] = (! empty($postConditionFieldValue));
+                            break;
+
+                        case 'IsBlank':
+                            $remove[] = (empty($postConditionFieldValue));
+                            break;
+
+                        case 'HasValue':
+                            $remove[] = ($postConditionFieldValue == $expectedValue);
+                            break;
+
+                        case 'ValueLessThan':
+                            $remove[] = ((float) $postConditionFieldValue < (float) $expectedValue);
+                            break;
+
+                        case 'ValueLessThanEqual':
+                            $remove[] = ((float) $postConditionFieldValue <= (float) $expectedValue);
+                            break;
+
+                        case 'ValueGreaterThan':
+                            $remove[] = ((float) $postConditionFieldValue > (float) $expectedValue);
+                            break;
+
+                        case 'ValueGreaterThanEqual':
+                            $remove[] = ((float) $postConditionFieldValue >= (float) $expectedValue);
+                            break;
+
+                        default: // ==HasNotValue
+                            $remove[] = ($postConditionFieldValue != $expectedValue);
+                            break;
+                    }
+                }
+
+                // echo "<pre>REMOVE ARRAY:\n".print_r($remove, 1)."</pre>";
+
+                if (count($remove)) {
+                    if (! $field->DisplayRulesConjunction || $field->DisplayRulesConjunction == 'And') {
+                        // all conditions must be true
+                        $conditionsMet = ! in_array(false, $remove);
+                    } else {
+                        // any condition can be true
+                        $conditionsMet = in_array(true, $remove);
+                    }
+                    if (! $conditionsMet) {
+                        // remove field from required fields
+                        $requiredFields->removeRequiredField($name);
+                        // echo "<pre>removed {$field->Title}\n</pre>";
+                    } else {
+                        // echo "<pre>check is false for {$field->Title}\n</pre>";
+                    }
+                } else {
+                    // echo "<pre>no remove for ".$field->Title."</pre>";
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Get the form for the page. Form can be modified by calling {@link updateForm()}
      * on a UserDefinedForm extension.
      *
@@ -442,6 +540,10 @@ class UserDefinedForm_Controller extends Page_Controller
     public function Form()
     {
         $form = UserForm::create($this);
+        
+        // remove required fields if they don't pass the conditions
+        $required = $form->getRequiredFields();
+        $this->requiredFieldsByRules($required, Convert::raw2xml($_POST));
         $this->generateConditionalJavascript();
         return $form;
     }
@@ -476,6 +578,9 @@ class UserDefinedForm_Controller extends Page_Controller
                 (function($) {
                     $(document).ready(function() {
                         {$rules}
+                        // show any fields that have condition met
+                        // need to add a class for that
+                        $(".conditions-met").removeClass('hide');
                     });
                 })(jQuery);
 JS
@@ -495,6 +600,13 @@ JS
      */
     public function process($data, $form)
     {
+
+        // figure out which fields are applicable
+		$names = $this->Fields()->column('Name');
+		$requiredFields = new RequiredFields($names);
+        $this->requiredFieldsByRules($requiredFields, Convert::raw2xml($data));
+        $applicableNames = $requiredFields->getRequired();
+
         $submittedForm = Object::create('SubmittedForm');
         $submittedForm->SubmittedByID = ($id = Member::currentUserID()) ? $id : 0;
         $submittedForm->ParentID = $this->ID;
@@ -508,7 +620,7 @@ JS
         $submittedFields = new ArrayList();
 
         foreach ($this->Fields() as $field) {
-            if (!$field->showInReports()) {
+            if (! in_array($field->Name, $applicableNames) || !$field->showInReports()) {
                 continue;
             }
 
@@ -766,16 +878,16 @@ JS
 
             $result .= <<<EOS
 \n
-    $('.userform').on('{$events}',
-    "{$selectors}",
-    function (){
+    var showHideFields = function(){
         if ({$operations}) {
             $('{$target}').{$rule['view']};
         } else {
             $('{$target}').{$rule['opposite']};
         }
-    });
+    }
+    $('.userform').on('{$events}', "{$selectors}", showHideFields);
     $("{$target}").find('.hide').removeClass('hide');
+    $(document).ready(showHideFields);
 EOS;
         }
 

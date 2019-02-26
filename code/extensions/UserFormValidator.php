@@ -106,21 +106,6 @@ class UserFormValidator extends RequiredFields
                 array_pop($stack);
             }
 
-            // Normal field type
-            if ($conditionalStep && $field->Required) {
-                $this->validationError(
-                    'FormFields',
-                    _t(
-                        "UserFormValidator.CONDITIONAL_REQUIRED",
-                        "Required field '{name}' cannot be placed within a conditional page",
-                        array(
-                            'name' => $field->CMSTitle
-                        )
-                    ),
-                    'error'
-                );
-                return false;
-            }
         }
 
         return true;

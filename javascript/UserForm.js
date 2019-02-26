@@ -120,7 +120,6 @@ jQuery(function ($) {
 
 				// When using the "are you sure?" plugin, ensure the form immediately submits.
 				$(form).removeClass('dirty');
-
 				form.submit();
 			} else {
 				userform.errorContainer.show();

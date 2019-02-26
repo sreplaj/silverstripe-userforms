@@ -75,6 +75,13 @@
 .right-title {
 	clear: both;
 	display: block;
+	margin: 0 0 5px;
+}
+
+.requiredField legend::before, .requiredField label.left::before {
+	content: '* ';
+	color: red;
+	font-weight: bold;
 }
 
 .checkbox .right-title {

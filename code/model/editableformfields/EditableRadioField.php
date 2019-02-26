@@ -49,5 +49,14 @@ class EditableRadioField extends EditableMultipleOptionField
 
 	public function isRadioField() {
 		return true;
-	}
+    }
+    
+    public function getValueFromData($data)
+    {
+        if (isset($data[$this->Name])) {
+            $source = $this->getFormField()->getSource();
+            return $source[$data[$this->Name]];
+        }
+    }
+
 }
