@@ -1,5 +1,5 @@
 {
-    "name": "sreplaj/silverstripe-userforms",
+    "name": "sreplaj/userforms",
     "description": "Fork of silverstripe/userforms which extends v4.3.4 to handle conditional and required fields",
     "type": "silverstripe-module",
     "keywords": [
