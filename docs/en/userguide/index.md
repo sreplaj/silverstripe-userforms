@@ -5,7 +5,7 @@ summary: How to use the UserForms module to create forms via the CMS.
 
 ## Before we begin
 
-Make sure that your SilverStripe CMS installation has the [UserForms](https://addons.silverstripe.org/add-ons/silverstripe/userforms/) module installed.
+Make sure that your SilverStripe CMS installation has the UserForms module installed.
 
 ## UserForm features
 * [Create and edit forms](creating-and-editing-forms.md)

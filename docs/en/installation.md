@@ -4,7 +4,7 @@ Installation can be done either by composer or by manually downloading a release
 
 ## Via composer
 
-`composer require "silverstripe/userforms:*"`
+`composer require "sreplaj/userforms:4.3.4"`
 
 ## Manually
 

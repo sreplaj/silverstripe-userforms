@@ -27,7 +27,7 @@ See the "require" section of [composer.json](https://github.com/silverstripe/sil
 ## Installation
 
 ```sh
-$ composer require silverstripe/userforms
+$ composer require sreplaj/userforms
 ```
 
 You'll also need to run `dev/build`. You should see a new page type in the CMS 'User Defined Form'. This has a new 'Form' tab which has your form builder.
