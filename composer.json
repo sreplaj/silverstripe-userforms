@@ -1,6 +1,6 @@
 {
-    "name": "silverstripe/userforms",
-    "description": "UserForms enables CMS users to create dynamic forms via a drag and drop interface and without getting involved in any PHP code",
+    "name": "sreplaj/silverstripe-userforms",
+    "description": "Fork of silverstripe/userforms which extends v4.3.4 to handle conditional and required fields",
     "type": "silverstripe-module",
     "keywords": [
         "silverstripe",
@@ -8,6 +8,10 @@
     ],
     "license": "BSD-3-Clause",
     "authors": [
+        {
+            "name": "Jonathan Alpers",
+            "email": "jonathan.alpers@gmail.com"
+        },
         {
             "name": "Will Rossiter",
             "email": "will@fullscreen.io"
